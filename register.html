@@ -4,6 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>注册账号 — Bestie Paw</title>
+  <meta name="description" content="注册 Bestie Paw 账号，为你的毛孩子建立专属健康档案。" />
+  <meta property="og:title" content="注册账号 — Bestie Paw" />
+  <meta property="og:description" content="注册 Bestie Paw 账号，为你的毛孩子建立专属健康档案。" />
+  <meta property="og:type" content="website" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="css/style.css" />
   <style>
     .social-btn {
@@ -78,15 +84,16 @@
 <body>
 
   <!-- ===== 导航栏 ===== -->
-  <nav class="nav">
+  <nav class="nav" aria-label="页面导航">
     <a href="index.html" class="nav-logo">Bestie<span>Paw</span> 🐾</a>
     <div class="nav-actions">
       <span style="font-size:0.875rem; color:var(--text-muted);">已有账号？</span>
-      <a href="#" class="btn btn-outline">登录</a>
+      <a href="login.html" class="btn btn-outline">登录</a>
     </div>
   </nav>
 
   <!-- ===== 注册表单 ===== -->
+  <main>
   <div class="page-center">
     <div class="card form-card">
 
@@ -113,8 +120,8 @@
 
       <!-- 第三方登录 -->
       <div class="social-row">
-        <button class="social-btn">🍎 Apple 登录</button>
-        <button class="social-btn">🔍 Google 登录</button>
+        <button type="button" class="social-btn" disabled title="即将上线">🍎 Apple 登录</button>
+        <button type="button" class="social-btn" disabled title="即将上线">🔍 Google 登录</button>
       </div>
       <div class="divider">或使用邮箱注册</div>
 
@@ -124,7 +131,7 @@
         <div class="form-group">
           <label class="form-label" for="username">昵称<span>*</span></label>
           <input class="form-input" type="text" id="username" name="username"
-                 placeholder="给自己起个名字" autocomplete="nickname" />
+               placeholder="给自己起个名字" autocomplete="username" />
         </div>
 
         <div class="form-group">
@@ -171,11 +178,12 @@
       </form>
 
       <div class="login-link">
-        已有账号？<a href="#">直接登录</a>
+        已有账号？<a href="login.html">直接登录</a>
       </div>
 
     </div>
   </div>
+  </main>
 
   <script src="js/main.js"></script>
   <script>
@@ -215,15 +223,6 @@
       label.textContent = v.length ? (lv ? '密码强度：' + lv.text : '') : '';
     });
 
-    /* 协议同意校验 */
-    const registerForm = document.getElementById('register-form');
-    registerForm.addEventListener('submit', (e) => {
-      if (!document.getElementById('agree').checked) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        alert('请先阅读并同意服务条款与隐私政策');
-      }
-    }, true);
   </script>
 </body>
 </html>

@@ -4,6 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>登记宠物信息 — Bestie Paw</title>
+  <meta name="description" content="填写宠物基本信息，建立专属健康档案。" />
+  <meta property="og:title" content="登记宠物信息 — Bestie Paw" />
+  <meta property="og:description" content="填写宠物基本信息，建立专属健康档案。" />
+  <meta property="og:type" content="website" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="css/style.css" />
   <style>
     .skip-link {
@@ -71,11 +77,12 @@
 <body>
 
   <!-- ===== 导航栏 ===== -->
-  <nav class="nav">
+  <nav class="nav" aria-label="页面导航">
     <a href="index.html" class="nav-logo">Bestie<span>Paw</span> 🐾</a>
   </nav>
 
   <!-- ===== 宠物登记表单 ===== -->
+  <main>
   <div class="page-center">
     <div class="card form-card-wide">
 
@@ -109,9 +116,12 @@
       <form id="pet-form" novalidate>
 
         <!-- 头像上传 -->
-        <div class="avatar-upload" id="avatar-zone" onclick="document.getElementById('pet-avatar-input').click()">
+        <div class="avatar-upload" id="avatar-zone"
+             role="button" tabindex="0"
+             aria-label="点击或按 Enter 上传宠物照片">
           <div class="avatar-circle" id="avatar-circle">🐶</div>
           <span class="avatar-upload-label">点击上传宠物照片（可选）</span>
+          <label for="pet-avatar-input" class="sr-only">上传宠物照片</label>
           <input type="file" id="pet-avatar-input" accept="image/*" style="display:none;" />
         </div>
 
@@ -207,7 +217,7 @@
           <label class="form-label" for="pet-allergies">已知过敏/疾病史</label>
           <textarea class="form-textarea" id="pet-allergies" name="pet-allergies"
                     placeholder="如：对某类食物过敏、有皮肤问题等（没有可留空）"
-                    maxlength="200" rows="3" id="pet-allergies-ta"></textarea>
+                    maxlength="200" rows="3"></textarea>
           <div class="char-count"><span id="allergy-count">0</span>/200</div>
         </div>
 
@@ -232,18 +242,20 @@
 
     </div>
   </div>
+  </main>
 
   <script src="js/main.js"></script>
   <script>
-    /* 字数统计 */
-    function countChars(textareaId, countId) {
-      const ta  = document.getElementById(textareaId);
-      const cnt = document.getElementById(countId);
-      if (!ta || !cnt) return;
-      ta.addEventListener('input', () => { cnt.textContent = ta.value.length; });
+    /* 头像上传区域键盘支持 */
+    const avatarZone = document.getElementById('avatar-zone');
+    if (avatarZone) {
+      avatarZone.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          document.getElementById('pet-avatar-input').click();
+        }
+      });
     }
-    countChars('pet-allergies', 'allergy-count');
-    countChars('pet-note', 'note-count');
   </script>
 </body>
 </html>

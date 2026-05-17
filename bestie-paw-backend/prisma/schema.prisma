@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                            String         @id @default(cuid())
+  username                      String         @unique
+  email                         String         @unique
+  phone                         String?        @unique
+  passwordHash                  String
+  avatarUrl                     String?
+  emailVerified                 Boolean        @default(false)
+  emailVerificationCodeHash     String?
+  emailVerificationExpiresAt    DateTime?
+  loginFailCount                Int            @default(0)
+  loginLockedUntil              DateTime?
+  termsAcceptedAt               DateTime?
+  termsVersion                  String?
+  deletedAt                     DateTime?
+  createdAt                     DateTime       @default(now())
+  updatedAt                     DateTime       @updatedAt
+
+  pets          Pet[]
+  posts         Post[]
+  refreshTokens RefreshToken[]
+  postLikes     PostLike[]
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Pet {
+  id        String         @id @default(cuid())
+  ownerId   String
+  name      String
+  type      PetType        @default(OTHER)
+  breed     String?
+  birthday  DateTime?
+  gender    Gender         @default(UNKNOWN)
+  weightKg  Float?
+  neutered  NeuteredStatus @default(UNKNOWN)
+  allergies String?
+  note      String?
+  avatarUrl String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  owner         User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  healthRecords HealthRecord[]
+  reminders     Reminder[]
+}
+
+enum PetType {
+  DOG
+  CAT
+  RABBIT
+  BIRD
+  FISH
+  OTHER
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+enum NeuteredStatus {
+  YES
+  NO
+  UNKNOWN
+}
+
+model HealthRecord {
+  id          String           @id @default(cuid())
+  petId       String
+  type        HealthRecordType
+  title       String
+  description String?
+  date        DateTime
+  vetName     String?
+  clinic      String?
+  attachments String[]         @default([])
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  pet         Pet              @relation(fields: [petId], references: [id], onDelete: Cascade)
+}
+
+enum HealthRecordType {
+  VACCINE
+  CHECKUP
+  MEDICATION
+  SURGERY
+  DEWORMING
+  OTHER
+}
+
+model Reminder {
+  id          String        @id @default(cuid())
+  petId       String
+  title       String
+  description String?
+  type        ReminderType
+  dueDate     DateTime
+  notified    Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+
+  pet         Pet           @relation(fields: [petId], references: [id], onDelete: Cascade)
+}
+
+enum ReminderType {
+  VACCINE
+  CHECKUP
+  MEDICATION
+  DEWORMING
+  OTHER
+}
+
+model Post {
+  id        String      @id @default(cuid())
+  authorId  String
+  content   String
+  images    String[]    @default([])
+  likes     Int         @default(0)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  author    User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments  Comment[]
+  postLikes PostLike[]
+}
+
+model PostLike {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
