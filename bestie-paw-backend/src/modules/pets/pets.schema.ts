@@ -13,14 +13,14 @@ const optionalEnum = <T extends z.ZodTypeAny>(schema: T) =>
   z.preprocess((value) => (value === '' ? undefined : value), schema.optional());
 
 export const petCreateSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1).max(50),
   type: optionalEnum(petTypeEnum),
-  breed: z.string().optional(),
+  breed: z.string().max(100).optional(),
   birthday: birthdaySchema,
   gender: optionalEnum(genderEnum),
   weightKg: z.preprocess(
     (value) => (value === '' || value === null ? undefined : value),
-    z.number().min(0, '体重不能为负数').optional()
+    z.number().min(0, '体重不能为负数').max(200).optional()
   ),
   neutered: optionalEnum(neuteredEnum),
   allergies: z.string().max(200).optional(),
@@ -28,14 +28,14 @@ export const petCreateSchema = z.object({
 });
 
 export const petUpdateSchema = z.object({
-  name: z.string().min(1).optional(),
+  name: z.string().min(1).max(50).optional(),
   type: optionalEnum(petTypeEnum),
-  breed: z.string().optional(),
+  breed: z.string().max(100).optional(),
   birthday: birthdaySchema,
   gender: optionalEnum(genderEnum),
   weightKg: z.preprocess(
     (value) => (value === '' || value === null ? undefined : value),
-    z.number().min(0, '体重不能为负数').optional()
+    z.number().min(0, '体重不能为负数').max(200).optional()
   ),
   neutered: optionalEnum(neuteredEnum),
   allergies: z.string().max(200).optional(),

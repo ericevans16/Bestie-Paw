@@ -4,40 +4,42 @@ import { sendReminderEmail } from '../../utils/mailer';
 import { logger } from '../../utils/logger';
 
 export const startReminderCron = () => {
+  let running = false;
+
   const task = cron.schedule('0 8 * * *', async () => {
-    const now = new Date();
-    const nextDay = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    if (running) return;
+    running = true;
+    try {
+      const now = new Date();
+      const nextDay = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-    const reminders = await prisma.reminder.findMany({
-      where: {
-        notified: false,
-        dueDate: { gte: now, lte: nextDay }
-      },
-      include: {
-        pet: {
-          include: {
-            owner: true
-          }
-        }
-      }
-    });
+      const reminders = await prisma.reminder.findMany({
+        where: { notified: false, dueDate: { gte: now, lte: nextDay } },
+        include: { pet: { include: { owner: true } } }
+      });
 
-    for (const reminder of reminders) {
-      try {
-        await sendReminderEmail(
-          reminder.pet.owner.email,
-          reminder.pet.name,
-          reminder.title,
-          reminder.dueDate
-        );
+      const results = await Promise.allSettled(
+        reminders.map((r) =>
+          sendReminderEmail(r.pet.owner.email, r.pet.name, r.title, r.dueDate)
+            .then(() => r.id)
+        )
+      );
 
-        await prisma.reminder.update({
-          where: { id: reminder.id },
+      const successIds = results
+        .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled')
+        .map((r) => r.value);
+
+      if (successIds.length > 0) {
+        await prisma.reminder.updateMany({
+          where: { id: { in: successIds } },
           data: { notified: true }
         });
-      } catch (err) {
-        logger.error('Failed to send reminder email', err as Error);
       }
+
+      const failCount = results.filter((r) => r.status === 'rejected').length;
+      if (failCount > 0) logger.error(`${failCount} reminder email(s) failed`);
+    } finally {
+      running = false;
     }
   });
 

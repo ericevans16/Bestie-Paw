@@ -1,22 +1,13 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../utils/prisma';
 import { sendMail } from '../../utils/mailer';
 import { env } from '../../config/env';
 import { AppError } from '../../middleware/errorHandler';
+import { assertPetOwnership } from '../../utils/petOwnership';
 import type { PetCreateInput, PetUpdateInput } from './pets.schema';
 
-const assertPetOwnership = async (userId: string, petId: string) => {
-  const pet = await prisma.pet.findUnique({ where: { id: petId } });
-  if (!pet) {
-    throw new AppError('NOT_FOUND', 'Pet not found', 404);
-  }
-  if (pet.ownerId !== userId) {
-    throw new AppError('FORBIDDEN', 'Not allowed', 403);
-  }
-  return pet;
-};
-
 export const listPets = async (userId: string) =>
-  prisma.pet.findMany({ where: { ownerId: userId } });
+  prisma.pet.findMany({ where: { ownerId: userId }, orderBy: { createdAt: 'asc' } });
 
 export const createPet = async (userId: string, input: PetCreateInput) => {
   const existingCount = await prisma.pet.count({ where: { ownerId: userId } });
@@ -106,25 +97,42 @@ export const updatePet = async (
   petId: string,
   input: PetUpdateInput
 ) => {
-  await assertPetOwnership(userId, petId);
-
   const data = {
     ...input,
     birthday: input.birthday ? new Date(input.birthday) : undefined
   };
 
-  return prisma.pet.update({
-    where: { id: petId },
-    data
-  });
+  try {
+    return await prisma.pet.update({
+      where: { id: petId, ownerId: userId },
+      data
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
+      throw new AppError('NOT_FOUND', 'Pet not found', 404);
+    }
+    throw err;
+  }
 };
 
 export const deletePet = async (userId: string, petId: string) => {
-  await assertPetOwnership(userId, petId);
-  await prisma.pet.delete({ where: { id: petId } });
+  try {
+    await prisma.pet.delete({ where: { id: petId, ownerId: userId } });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
+      throw new AppError('NOT_FOUND', 'Pet not found', 404);
+    }
+    throw err;
+  }
 };
 
 export const updatePetAvatar = async (userId: string, petId: string, avatarUrl: string) => {
-  await assertPetOwnership(userId, petId);
-  return prisma.pet.update({ where: { id: petId }, data: { avatarUrl } });
+  try {
+    return await prisma.pet.update({ where: { id: petId, ownerId: userId }, data: { avatarUrl } });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
+      throw new AppError('NOT_FOUND', 'Pet not found', 404);
+    }
+    throw err;
+  }
 };

@@ -1,16 +1,7 @@
-import { ReminderType } from '@prisma/client';
+import { Prisma, ReminderType } from '@prisma/client';
 import { prisma } from '../../utils/prisma';
 import { AppError } from '../../middleware/errorHandler';
-
-const assertPetOwnership = async (userId: string, petId: string) => {
-  const pet = await prisma.pet.findUnique({ where: { id: petId } });
-  if (!pet) {
-    throw new AppError('NOT_FOUND', 'Pet not found', 404);
-  }
-  if (pet.ownerId !== userId) {
-    throw new AppError('FORBIDDEN', 'Not allowed', 403);
-  }
-};
+import { assertPetOwnership } from '../../utils/petOwnership';
 
 export const listReminders = async (userId: string, petId: string, upcoming?: boolean) => {
   await assertPetOwnership(userId, petId);
@@ -63,17 +54,31 @@ export const updateReminder = async (
 ) => {
   await assertPetOwnership(userId, petId);
 
-  return prisma.reminder.update({
-    where: { id: reminderId },
-    data: {
-      ...data,
-      type: data.type as ReminderType | undefined,
-      dueDate: data.dueDate ? new Date(data.dueDate) : undefined
+  try {
+    return await prisma.reminder.update({
+      where: { id: reminderId, petId },
+      data: {
+        ...data,
+        type: data.type as ReminderType | undefined,
+        dueDate: data.dueDate ? new Date(data.dueDate) : undefined
+      }
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
+      throw new AppError('NOT_FOUND', 'Reminder not found', 404);
     }
-  });
+    throw err;
+  }
 };
 
 export const deleteReminder = async (userId: string, petId: string, reminderId: string) => {
   await assertPetOwnership(userId, petId);
-  await prisma.reminder.delete({ where: { id: reminderId } });
+  try {
+    await prisma.reminder.delete({ where: { id: reminderId, petId } });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
+      throw new AppError('NOT_FOUND', 'Reminder not found', 404);
+    }
+    throw err;
+  }
 };

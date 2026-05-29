@@ -1,26 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
-import { z } from 'zod';
 import { sendSuccess } from '../../utils/response';
 import { createReminder, deleteReminder, listReminders, updateReminder } from './reminders.service';
-
-const reminderTypeEnum = z.enum(['VACCINE', 'CHECKUP', 'MEDICATION', 'DEWORMING', 'OTHER']);
-const dateString = z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
-  message: 'Invalid date'
-});
-
-const createSchema = z.object({
-  title: z.string().min(1),
-  description: z.string().optional(),
-  type: reminderTypeEnum,
-  dueDate: dateString
-});
-
-const updateSchema = z.object({
-  title: z.string().min(1).optional(),
-  description: z.string().optional(),
-  type: reminderTypeEnum.optional(),
-  dueDate: dateString.optional()
-});
+import { createSchema, updateSchema } from './reminders.schema';
 
 export const listRemindersHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {

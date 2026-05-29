@@ -39,6 +39,8 @@ model RefreshToken {
   createdAt DateTime @default(now())
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Pet {
@@ -97,6 +99,8 @@ model HealthRecord {
   updatedAt   DateTime         @updatedAt
 
   pet         Pet              @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@index([petId, date])
 }
 
 enum HealthRecordType {
@@ -119,6 +123,9 @@ model Reminder {
   createdAt   DateTime      @default(now())
 
   pet         Pet           @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@index([petId, dueDate])
+  @@index([notified, dueDate])
 }
 
 enum ReminderType {
@@ -141,6 +148,8 @@ model Post {
   author    User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments  Comment[]
   postLikes PostLike[]
+
+  @@index([createdAt])
 }
 
 model PostLike {
