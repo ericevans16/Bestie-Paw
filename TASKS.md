@@ -7,17 +7,18 @@
 ## 看板状态
 | 任务 | 标题 | 分配给 | 状态 |
 |---|---|---|---|
-| TASK-001 | 后端核心 API 集成测试套件 | **Antigravity** | IN_REVIEW（PR #6，仅差贴最新 npm test 输出） |
+| TASK-001 | 后端核心 API 集成测试套件 | Antigravity | ✅ DONE（PR #6 已合并 2026-06-02） |
 | TASK-002 | CI 工作流 + ESLint 门禁 bootstrap | Claude Code（架构师） | PENDING |
-| TASK-003 | 覆盖率阈值棘轮抬到 70% | 待分配 | PENDING（技术债） |
-| TASK-004 | 分页信封统一为 `items`（records/posts → items） | 待分配 | PENDING（契约决策：B/items） |
+| TASK-003 | 覆盖率阈值棘轮抬到 70% | **Antigravity** | PENDING（技术债，待 TASK-002 CI 就绪后对齐） |
+| TASK-004 | 分页信封统一为 `items`（records/posts → items） | **Codex** | PENDING（已分配，可开工） |
 
 ---
 
 ## [TASK-001] 后端核心 API 集成测试套件（auth + pets + health）
-- **状态**: PENDING
+- **状态**: ✅ DONE（PR #6 已合并 2026-06-02；22 用例全过，门禁绿）
 - **分配给**: Antigravity
-- **分支**: `agent/antigravity/backend-api-tests`
+- **分支**: `agent/antigravity/backend-api-tests`（已合并删除）
+- **遗留/转交**: 覆盖率为达标临时降阈（branches 44 / functions 66）→ 转 TASK-003 棘轮抬到 70；测试暴露的 `records` 漂移 → 转 TASK-004。
 - **涉及路径**:
   - 新增 `bestie-paw-backend/src/**/__tests__/*.test.ts`（或 `tests/` 目录）
   - 可新增 `bestie-paw-backend/tests/setup.ts`、`bestie-paw-backend/.env.test`（勿提交真实密钥，仅占位）
@@ -67,10 +68,10 @@
 
 ## [TASK-003] 覆盖率阈值棘轮抬到 70%（技术债）
 - **状态**: PENDING
-- **分配给**: 待分配（建议 Antigravity 续作）
-- **分支**: `agent/<name>/coverage-ratchet`
+- **分配给**: Antigravity（续作）
+- **分支**: `agent/antigravity/coverage-ratchet`
 - **涉及路径**: `bestie-paw-backend/tests/**`、`jest.config.js`
-- **依赖**: TASK-001 合并后
+- **依赖**: TASK-001 已合并 ✅；建议在 TASK-002（CI）就绪后对齐同一阈值
 - **创建**: 2026-06-02　**截止**: 待定
 - **背景**: TASK-001 为让门禁变绿，把 `coverageThreshold` 临时设为 branches 44 / functions 66（statements·lines 70）。branches 44% 偏低。
 - **验收标准**:
@@ -79,15 +80,15 @@
   - [ ] 与 TASK-002 的 CI 对齐（CI 跑同一阈值）
 
 ## [TASK-004] 分页信封统一为 `items`（契约对齐，决策 = B）
-- **状态**: PENDING
-- **分配给**: 待分配
-- **分支**: `agent/<name>/pagination-items`
+- **状态**: PENDING（已分配，可开工）
+- **分配给**: Codex
+- **分支**: `agent/codex/pagination-items`
 - **涉及路径（跨端，破坏性变更）**:
   - 后端：`src/modules/health/health.controller.ts`、`src/modules/community/community.controller.ts`（及对应 service/返回处）→ `records`/`posts` 改为 `items`
   - 前端：`app/services.jsx` 适配层（移除对 `records`/`posts` 的拆封，改读 `items`）
   - 文档：`bestie-paw-backend/API.md`、`docs/API_CONTRACTS.md §5`
   - 测试：`bestie-paw-backend/tests/health.test.ts` 把断言从 `records` 改回 `items`
-- **依赖**: **TASK-001 先合并**（避免与其测试断言打架）；此后本任务统一翻转后端+前端+测试
+- **依赖**: TASK-001 已合并 ✅（health.test.ts 已在 main，可直接改其断言）；本任务统一翻转后端+前端+测试
 - **创建**: 2026-06-02　**截止**: 待定
 - **决策来源**: 架构师裁定 `items` 为分页信封唯一字段名（见 `docs/API_CONTRACTS.md §5`）
 - **验收标准**:
