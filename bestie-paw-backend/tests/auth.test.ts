@@ -2,6 +2,8 @@
 import request from 'supertest';
 import app from '../src/app';
 import { prisma } from '../src/utils/prisma';
+import { hashValue } from '../src/utils/hash';
+import { signPasswordResetToken } from '../src/utils/jwt';
 
 describe('Auth Module Integration Tests', () => {
   const registerPayload = {
@@ -319,7 +321,7 @@ describe('Auth Module Integration Tests', () => {
     });
 
     // Import hash for manual code
-    const { hashValue } = require('../src/utils/hash');
+    // Use imported hashValue for manual code
     const codeHash = await hashValue('123456');
 
     await prisma.user.update({
@@ -345,7 +347,7 @@ describe('Auth Module Integration Tests', () => {
       username: 'reset-success'
     });
     
-    const { signPasswordResetToken } = require('../src/utils/jwt');
+    // Use imported signPasswordResetToken
     const token = signPasswordResetToken({ userId: reg.body.data.user.id });
 
     const res = await request(app)
