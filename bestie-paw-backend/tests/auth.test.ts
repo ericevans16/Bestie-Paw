@@ -147,7 +147,7 @@ describe('Auth Module Integration Tests', () => {
   });
 
   it('should logout and revoke tokens', async () => {
-    const registerRes = await request(app).post('/api/auth/register').send({
+    await request(app).post('/api/auth/register').send({
       username: 'logoutuser',
       email: 'logout@example.com',
       password: 'Password123!',

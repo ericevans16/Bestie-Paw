@@ -52,7 +52,7 @@ const configureApple = () => {
         _accessToken: string,
         _refreshToken: string,
         _idToken: string,
-        profile: any,
+        profile: { email?: string; name?: { firstName?: string; lastName?: string } },
         done: (error: Error | null, user?: unknown) => void
       ) => {
         const email = profile?.email;
