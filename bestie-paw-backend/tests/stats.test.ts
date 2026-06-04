@@ -8,23 +8,19 @@ describe('Stats Module', () => {
     await prisma.pet.deleteMany();
     await prisma.user.deleteMany();
 
-    // Create a dummy user and pet just to have >0 count
-    const user = await prisma.user.create({
-      data: {
-        username: 'statuser',
-        email: 'statuser@example.com',
-        password: 'hashedpassword'
-      }
-    });
+    // Create a dummy user and pet using the API
+    const user = { username: 'statuser', email: 'statuser@example.com', password: 'Password123!' };
+    await request(app).post('/api/auth/register').send(user);
+    
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ email: user.email, password: user.password });
+    const token = loginRes.body.data.accessToken;
 
-    await prisma.pet.create({
-      data: {
-        name: 'StatPet',
-        type: 'DOG',
-        gender: 'MALE',
-        userId: user.id
-      }
-    });
+    await request(app)
+      .post('/api/pets')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'StatPet', type: 'DOG', gender: 'MALE' });
   });
 
   afterAll(async () => {
