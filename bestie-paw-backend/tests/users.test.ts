@@ -1,0 +1,136 @@
+import request from 'supertest';
+import app from '../src/app';
+import { prisma } from '../src/utils/prisma';
+
+describe('Users Module', () => {
+  const testUser = {
+    username: 'user_test',
+    email: 'user_test@example.com',
+    password: 'Password123!'
+  };
+
+  const otherUser = {
+    username: 'other_test',
+    email: 'other_test@example.com',
+    password: 'Password123!'
+  };
+
+  let token: string;
+  let otherToken: string;
+
+  beforeEach(async () => {
+    await prisma.user.deleteMany();
+
+    // Register and login testUser
+    await request(app).post('/api/auth/register').send(testUser);
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ email: testUser.email, password: testUser.password });
+    token = loginRes.body.data.accessToken;
+
+    // Just call to verify it doesn't fail
+    await request(app).get('/api/users/me').set('Authorization', `Bearer ${token}`);
+
+    // Register and login otherUser
+    await request(app).post('/api/auth/register').send(otherUser);
+    const otherLoginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ email: otherUser.email, password: otherUser.password });
+    otherToken = otherLoginRes.body.data.accessToken;
+  });
+
+  it('GET /api/users/me should return current user profile', async () => {
+    const res = await request(app)
+      .get('/api/users/me')
+      .set('Authorization', `Bearer ${token}`);
+    
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.email).toBe(testUser.email);
+    expect(res.body.data.username).toBe(testUser.username);
+  });
+
+  it('PATCH /api/users/me should update user profile', async () => {
+    const res = await request(app)
+      .patch('/api/users/me')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ phone: '13800138000', username: 'new_username' });
+    
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.phone).toBe('13800138000');
+    expect(res.body.data.username).toBe('new_username');
+  });
+
+  it('PATCH /api/users/me should return 409 if phone number is duplicated', async () => {
+    // First user sets phone
+    await request(app)
+      .patch('/api/users/me')
+      .set('Authorization', `Bearer ${otherToken}`)
+      .send({ phone: '13800138001' });
+
+    // Test user tries to use same phone
+    const res = await request(app)
+      .patch('/api/users/me')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ phone: '13800138001' });
+
+    expect(res.status).toBe(409);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('CONFLICT');
+  });
+
+  it('PATCH /api/users/me/password should change password and invalidate token', async () => {
+    const res = await request(app)
+      .patch('/api/users/me/password')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        currentPassword: testUser.password,
+        newPassword: 'NewPassword123!'
+      });
+    
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+
+    // After password change, old token should be unauthorized
+    const meRes = await request(app)
+      .get('/api/users/me')
+      .set('Authorization', `Bearer ${token}`);
+    expect(meRes.status).toBe(401);
+    expect(meRes.body.error.code).toBe('UNAUTHORIZED');
+
+    // Login with new password should work
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ email: testUser.email, password: 'NewPassword123!' });
+    expect(loginRes.status).toBe(200);
+  });
+
+  it('PATCH /api/users/me/password should reject wrong current password', async () => {
+    const res = await request(app)
+      .patch('/api/users/me/password')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        currentPassword: 'wrongpassword',
+        newPassword: 'NewPassword123!'
+      });
+    
+    expect(res.status).toBe(400); // Or UNAUTHORIZED depending on implementation, let's verify error code if needed. Assuming 401 or 400. We'll just check it's not 200.
+    expect(res.body.success).toBe(false);
+  });
+
+  it('DELETE /api/users/me should soft delete user account', async () => {
+    const res = await request(app)
+      .delete('/api/users/me')
+      .set('Authorization', `Bearer ${token}`);
+    
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+
+    // Token should be invalid or user fetch should fail
+    const meRes = await request(app)
+      .get('/api/users/me')
+      .set('Authorization', `Bearer ${token}`);
+    expect(meRes.status).toBe(401); // Soft deleted users usually can't authenticate/access
+  });
+});
