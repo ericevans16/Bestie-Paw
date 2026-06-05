@@ -14,7 +14,7 @@
 | TASK-005 | 工具链债务清理（no-explicit-any→error、tsconfig 拆分） | Antigravity | ✅ DONE（PR #14 已合并 2026-06-03） |
 | TASK-006 | 健康附件数量上限 + assertPetOwnership 抽公共 util | Codex | ✅ DONE（PR #20 已合并 2026-06-04） |
 | TASK-007 | 后端剩余模块集成测试（community/users/weight/reminders/stats） | Antigravity | ✅ DONE（PR #19 已合并 2026-06-05；81 用例绿，全局覆盖 ≥70） |
-| TASK-008 | CI 健壮性（迁移 P3018 + ts-jest isolatedModules 噪音） | 待分配 | PENDING（技术债） |
+| TASK-008 | CI 健壮性（迁移 P3018 + ts-jest isolatedModules 噪音） | Claude Code | ✅ DONE（PR #22） |
 
 > **阶段小结（2026-06-03）**：TASK-001~005 全部完成，后端质量基建阶段收口。`main` 绿 + 分支保护强制 CI；auth/pets/health 覆盖率 ≥70%；分页契约统一 `items`；ESLint `no-explicit-any` 为 error。
 > **安全修复（2026-06-03，PR #16）**：修复 reminders 越权 IDOR（updateReminder/deleteReminder 按 petId 收紧 where），含回归测试；摘取自废弃分支 `claude/blissful-archimedes-252661`。
@@ -155,9 +155,9 @@
 - **协调提醒**: 与 TASK-006（Codex）并行。本任务改 `jest.config.js` 的覆盖率范围；TASK-006 不动该文件，避免冲突。
 
 ## [TASK-008] CI 健壮性清理（技术债）
-- **状态**: PENDING
-- **分配给**: 待分配
-- **分支**: `agent/<name>/ci-robustness`
+- **状态**: ✅ DONE（PR #22 已合并 2026-06-05；`build-and-test` CI 绿）
+- **分配给**: Claude Code（架构师）
+- **分支**: `agent/claudecode/ci-robustness`（已合并）
 - **涉及路径**: `bestie-paw-backend/tests/globalSetup.ts`、`bestie-paw-backend/jest.config.js`（ts-jest 配置）、必要时 `bestie-paw-backend/tsconfig*.json`、`prisma/migrations/*`
 - **依赖**: 无
 - **创建**: 2026-06-05　**截止**: 待定
@@ -165,6 +165,11 @@
   - **P3018**：全新容器里 `prisma migrate deploy` 报 `relation "Reminder" does not exist`，靠 `globalSetup` 的 `db push` 兜底才建表。迁移本身可能有顺序/基线问题，被兜底掩盖。
   - **ts-jest 噪音**：`module: Node16` 下未设 `isolatedModules: true`，CI 日志被 `TS151002` 警告刷几十行，掩盖真实失败输出。
 - **验收标准**:
-  - [ ] 排查并修复 `migrate deploy` 在干净库上失败的根因（迁移顺序/基线），使 globalSetup 不再依赖 db-push 兜底（或明确该兜底为有意设计并消除报错噪音）
-  - [ ] 消除 ts-jest `TS151002` 警告（设 `isolatedModules: true` 或 `diagnostics.ignoreCodes`），CI 日志干净
-  - [ ] CI `build-and-test` 仍绿；不改业务逻辑/测试断言
+  - [x] 排查并修复 `migrate deploy` 在干净库上失败的根因（迁移顺序/基线），使 globalSetup 不再依赖 db-push 兜底（或明确该兜底为有意设计并消除报错噪音）
+  - [x] 消除 ts-jest `TS151002` 警告（设 `isolatedModules: true` 或 `diagnostics.ignoreCodes`），CI 日志干净
+  - [x] CI `build-and-test` 仍绿；不改业务逻辑/测试断言
+- **达成**:
+  - 根因：`prisma/migrations` 缺创建基表的初始迁移（早期 db push 建库，只留两个 `*_add_*` 迁移）→ 干净库先跑 add 迁移引用未建表 → P3018。
+  - 新增基线迁移 `20260529000000_init`（`migrate diff --from-empty → 旧态schema` 生成），排在两个 add 迁移之前；离线证明 `init + mig1 + mig2 == schema.prisma` 零漂移。CI 日志确认干净库 `migrate deploy` 三迁移依序应用、无 P3018、不再触发 db-push 兜底。
+  - `tsconfig.json` 设 `isolatedModules: true` 消除 TS151002；typecheck / build / lint 仍绿。
+- **遗留/转交**: 现有 db-push 建的 dev/prod 库需 Owner 手动 `prisma migrate resolve --applied <三个迁移>` 标记基线（详见 PR #22 描述）。全新库无需操作。
