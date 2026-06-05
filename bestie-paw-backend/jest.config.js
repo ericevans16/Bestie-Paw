@@ -10,6 +10,11 @@ module.exports = {
     'src/modules/auth/**/*.ts',
     'src/modules/pets/**/*.ts',
     'src/modules/health/**/*.ts',
+    'src/modules/community/**/*.ts',
+    'src/modules/users/**/*.ts',
+    'src/modules/weight/**/*.ts',
+    'src/modules/reminders/**/*.ts',
+    'src/modules/stats/**/*.ts',
     '!src/modules/**/index.ts',
     '!src/modules/**/oauth.strategy.ts',
     '!src/modules/**/oauth.service.ts'

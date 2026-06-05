@@ -116,4 +116,80 @@ describe('Reminders Module — ownership / IDOR', () => {
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('FORBIDDEN');
   });
+  it('must reject creation if dueDate is in the past (400)', async () => {
+    const pastDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const res = await request(app)
+      .post(`/api/pets/${pet1}/reminders`)
+      .set('Authorization', `Bearer ${token1}`)
+      .send({ title: 'Past Vaccine', type: 'VACCINE', dueDate: pastDate });
+    
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('owner can complete a reminder and filter list by includeCompleted', async () => {
+    const id = await createReminderForUser1();
+
+    // Verify it appears in upcoming (default)
+    const list1 = await request(app)
+      .get(`/api/pets/${pet1}/reminders`)
+      .set('Authorization', `Bearer ${token1}`);
+    expect(list1.body.data.length).toBe(1);
+
+    // Complete the reminder
+    const compRes = await request(app)
+      .post(`/api/pets/${pet1}/reminders/${id}/complete`)
+      .set('Authorization', `Bearer ${token1}`);
+    expect(compRes.status).toBe(200);
+    expect(compRes.body.data.completedAt).toBeTruthy();
+
+    // Verify it does NOT appear in upcoming
+    const list2 = await request(app)
+      .get(`/api/pets/${pet1}/reminders`)
+      .set('Authorization', `Bearer ${token1}`);
+    expect(list2.body.data.length).toBe(0);
+
+    // Verify it DOES appear if includeCompleted=true
+    const list3 = await request(app)
+      .get(`/api/pets/${pet1}/reminders?includeCompleted=true`)
+      .set('Authorization', `Bearer ${token1}`);
+    expect(list3.body.data.length).toBe(1);
+    expect(list3.body.data[0].completedAt).toBeTruthy();
+  });
+
+  it('must return 404 when completing non-existent reminder', async () => {
+    const fakeId = '00000000-0000-0000-0000-000000000000';
+    const res = await request(app)
+      .post(`/api/pets/${pet1}/reminders/${fakeId}/complete`)
+      .set('Authorization', `Bearer ${token1}`);
+    
+    expect(res.status).toBe(404);
+  });
+
+  it('can list reminders filtered by upcoming', async () => {
+    // Create one future and one far future
+    const now = new Date();
+    const nearFuture = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString();
+    const farFuture = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000).toISOString();
+
+    await request(app)
+      .post(`/api/pets/${pet1}/reminders`)
+      .set('Authorization', `Bearer ${token1}`)
+      .send({ title: 'Near', type: 'VACCINE', dueDate: nearFuture });
+
+    await request(app)
+      .post(`/api/pets/${pet1}/reminders`)
+      .set('Authorization', `Bearer ${token1}`)
+      .send({ title: 'Far', type: 'VACCINE', dueDate: farFuture });
+
+    const listRes = await request(app)
+      .get(`/api/pets/${pet1}/reminders?upcoming=true`)
+      .set('Authorization', `Bearer ${token1}`);
+
+    expect(listRes.status).toBe(200);
+    // Should only contain the near future one since it's <= nextWeek
+    expect(listRes.body.data.length).toBe(1);
+    expect(listRes.body.data[0].title).toBe('Near');
+  });
 });
