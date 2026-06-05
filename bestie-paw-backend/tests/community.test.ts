@@ -164,4 +164,74 @@ describe('Community Module', () => {
     expect(unlike2.status).toBe(200);
     expect(unlike2.body.data.liked).toBe(false);
   });
+
+  it('should handle 404s and 403s on posts and comments', async () => {
+    const fakeId = '00000000-0000-0000-0000-000000000000';
+
+    // 404 get post
+    const getRes = await request(app)
+      .get(`/api/community/posts/${fakeId}`)
+      .set('Authorization', `Bearer ${token1}`);
+    expect(getRes.status).toBe(404);
+
+    // 404 delete post
+    const delPostRes = await request(app)
+      .delete(`/api/community/posts/${fakeId}`)
+      .set('Authorization', `Bearer ${token1}`);
+    expect(delPostRes.status).toBe(404);
+
+    // 404 like post
+    const likeRes = await request(app)
+      .post(`/api/community/posts/${fakeId}/like`)
+      .set('Authorization', `Bearer ${token1}`);
+    expect(likeRes.status).toBe(404);
+
+    // 404 unlike post
+    const unlikeRes = await request(app)
+      .delete(`/api/community/posts/${fakeId}/like`)
+      .set('Authorization', `Bearer ${token1}`);
+    expect(unlikeRes.status).toBe(404);
+
+    // 404 create comment
+    const createCommentRes = await request(app)
+      .post(`/api/community/posts/${fakeId}/comments`)
+      .set('Authorization', `Bearer ${token1}`)
+      .send({ content: 'test' });
+    expect(createCommentRes.status).toBe(404);
+
+    // Create a real post for comment tests
+    const postRes = await request(app)
+      .post('/api/community/posts')
+      .set('Authorization', `Bearer ${token1}`)
+      .send({ content: 'Post for comment 404s' });
+    const postId = postRes.body.data.id;
+
+    // 404 delete comment
+    const delCommentRes = await request(app)
+      .delete(`/api/community/posts/${postId}/comments/${fakeId}`)
+      .set('Authorization', `Bearer ${token1}`);
+    expect(delCommentRes.status).toBe(404);
+
+    // 403 delete comment
+    const realCommentRes = await request(app)
+      .post(`/api/community/posts/${postId}/comments`)
+      .set('Authorization', `Bearer ${token1}`)
+      .send({ content: 'My comment' });
+    const commentId = realCommentRes.body.data.id;
+
+    const delComment403 = await request(app)
+      .delete(`/api/community/posts/${postId}/comments/${commentId}`)
+      .set('Authorization', `Bearer ${token2}`);
+    expect(delComment403.status).toBe(403);
+  });
+
+  it('should list posts with edge case pagination parameters', async () => {
+    const listRes = await request(app)
+      .get('/api/community/posts?page=0&limit=100')
+      .set('Authorization', `Bearer ${token1}`);
+    
+    expect(listRes.status).toBe(200);
+    expect(listRes.body.data.page).toBe(1); // clamped to Math.max(1, 0)
+    expect(listRes.body.data.limit).toBe(50); // clamped to Math.min(50, 100)
+  });
 });

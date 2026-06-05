@@ -88,6 +88,17 @@ describe('Weight Module', () => {
     // Let me check weight.service.ts: it just returns `prisma.weightRecord.findMany`. It does NOT return `{ items, total }`!
     // So Array.isArray(res.body.data) is correct.
     expect(res.body.data.length).toBeGreaterThanOrEqual(1);
+
+    // Test branch coverage for limits
+    const limitMinRes = await request(app)
+      .get(`/api/pets/${pet1}/weight?limit=-5`)
+      .set('Authorization', `Bearer ${token1}`);
+    expect(limitMinRes.status).toBe(200);
+
+    const limitMaxRes = await request(app)
+      .get(`/api/pets/${pet1}/weight?limit=500`)
+      .set('Authorization', `Bearer ${token1}`);
+    expect(limitMaxRes.status).toBe(200);
   });
 
   it('DELETE /api/pets/:petId/weight/:recordId should delete weight record', async () => {

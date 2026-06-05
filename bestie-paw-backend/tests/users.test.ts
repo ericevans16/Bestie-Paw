@@ -136,4 +136,22 @@ describe('Users Module', () => {
     expect(meRes.status).toBe(404);
     expect(meRes.body.error.code).toBe('NOT_FOUND');
   });
+
+  it('POST /api/users/me/avatar should update avatar and cleanup old avatar', async () => {
+    // First upload
+    const res1 = await request(app)
+      .post('/api/users/me/avatar')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ avatarUrl: 'http://example.com/avatar1.png' });
+    expect(res1.status).toBe(200);
+    expect(res1.body.data.avatarUrl).toBe('http://example.com/avatar1.png');
+
+    // Second upload to trigger cleanup of old avatar
+    const res2 = await request(app)
+      .post('/api/users/me/avatar')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ avatarUrl: 'http://example.com/avatar2.png' });
+    expect(res2.status).toBe(200);
+    expect(res2.body.data.avatarUrl).toBe('http://example.com/avatar2.png');
+  });
 });
