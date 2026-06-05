@@ -12,8 +12,9 @@
 | TASK-003 | 覆盖率阈值棘轮抬到 70% | Antigravity | ✅ DONE（PR #13 已合并 2026-06-03；实测 branch 71/func 98） |
 | TASK-004 | 分页信封统一为 `items`（records/posts → items） | Codex | ✅ DONE（PR #9 已合并 2026-06-03，22 用例绿） |
 | TASK-005 | 工具链债务清理（no-explicit-any→error、tsconfig 拆分） | Antigravity | ✅ DONE（PR #14 已合并 2026-06-03） |
-| TASK-006 | 健康附件数量上限 + assertPetOwnership 抽公共 util | Codex | 🚧 已派发（2026-06-03） |
-| TASK-007 | 后端剩余模块集成测试（community/users/weight/reminders/stats） | Antigravity | 🚧 已派发（2026-06-03） |
+| TASK-006 | 健康附件数量上限 + assertPetOwnership 抽公共 util | Codex | ✅ DONE（PR #20 已合并 2026-06-04） |
+| TASK-007 | 后端剩余模块集成测试（community/users/weight/reminders/stats） | Antigravity | ✅ DONE（PR #19 已合并 2026-06-05；81 用例绿，全局覆盖 ≥70） |
+| TASK-008 | CI 健壮性（迁移 P3018 + ts-jest isolatedModules 噪音） | 待分配 | PENDING（技术债） |
 
 > **阶段小结（2026-06-03）**：TASK-001~005 全部完成，后端质量基建阶段收口。`main` 绿 + 分支保护强制 CI；auth/pets/health 覆盖率 ≥70%；分页契约统一 `items`；ESLint `no-explicit-any` 为 error。
 > **安全修复（2026-06-03，PR #16）**：修复 reminders 越权 IDOR（updateReminder/deleteReminder 按 petId 收紧 where），含回归测试；摘取自废弃分支 `claude/blissful-archimedes-252661`。
@@ -118,7 +119,7 @@
   - [ ] 属**破坏性变更**：合并前确认前端已同步，避免线上联调断裂
 
 ## [TASK-006] 健康附件数量上限 + assertPetOwnership 抽公共 util（安全/健壮性）
-- **状态**: 🚧 已派发（2026-06-03）
+- **状态**: ✅ DONE（PR #20 已合并 2026-06-04；上限 20 + 被拒上传清理孤儿文件 + 测试）。dedup 部分按协调暂缓未做。
 - **分配给**: Codex
 - **分支**: `agent/codex/attachment-limit`
 - **协调提醒**: 与 TASK-007（Antigravity）并行。TASK-006 主体是 health 附件上限（health 模块）；可选的 dedup 会动 reminders/pets service——为避免与 TASK-007 的 reminders 测试抢路径，**dedup 部分可暂缓**，先交付附件上限。
@@ -135,7 +136,7 @@
 - **参考实现**: 见 blissful 分支 76d72f5（仅作参考，勿整分支合并——其多数内容已被 main 取代）
 
 ## [TASK-007] 后端剩余模块集成测试（community / users / weight / reminders / stats）
-- **状态**: 🚧 已派发（2026-06-03）
+- **状态**: ✅ DONE（PR #19 已合并 2026-06-05；81 用例全过、全局覆盖率 ≥70；经 5 轮 Review 收敛）
 - **分配给**: Antigravity
 - **分支**: `agent/antigravity/remaining-module-tests`
 - **涉及路径**: 新增 `bestie-paw-backend/tests/{community,users,weight,stats}.test.ts`、扩展 `tests/reminders.test.ts`、`bestie-paw-backend/jest.config.js`（扩 `collectCoverageFrom` + 阈值）
@@ -152,3 +153,18 @@
   - [ ] **仅加测试 + 改 jest.config**；不改业务逻辑（测试若暴露 bug，只在 PR 描述记录，由架构师另开任务）
   - [ ] 邮件/SMTP 走 mock，不真实发信；不连真库（CI 容器化）
 - **协调提醒**: 与 TASK-006（Codex）并行。本任务改 `jest.config.js` 的覆盖率范围；TASK-006 不动该文件，避免冲突。
+
+## [TASK-008] CI 健壮性清理（技术债）
+- **状态**: PENDING
+- **分配给**: 待分配
+- **分支**: `agent/<name>/ci-robustness`
+- **涉及路径**: `bestie-paw-backend/tests/globalSetup.ts`、`bestie-paw-backend/jest.config.js`（ts-jest 配置）、必要时 `bestie-paw-backend/tsconfig*.json`、`prisma/migrations/*`
+- **依赖**: 无
+- **创建**: 2026-06-05　**截止**: 待定
+- **背景**: 多轮 Review 中暴露两处 CI 隐患（不影响功能，但会掩盖真问题）：
+  - **P3018**：全新容器里 `prisma migrate deploy` 报 `relation "Reminder" does not exist`，靠 `globalSetup` 的 `db push` 兜底才建表。迁移本身可能有顺序/基线问题，被兜底掩盖。
+  - **ts-jest 噪音**：`module: Node16` 下未设 `isolatedModules: true`，CI 日志被 `TS151002` 警告刷几十行，掩盖真实失败输出。
+- **验收标准**:
+  - [ ] 排查并修复 `migrate deploy` 在干净库上失败的根因（迁移顺序/基线），使 globalSetup 不再依赖 db-push 兜底（或明确该兜底为有意设计并消除报错噪音）
+  - [ ] 消除 ts-jest `TS151002` 警告（设 `isolatedModules: true` 或 `diagnostics.ignoreCodes`），CI 日志干净
+  - [ ] CI `build-and-test` 仍绿；不改业务逻辑/测试断言
