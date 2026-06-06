@@ -16,7 +16,9 @@
 { "success": false, "error": { "code": "STRING_CODE", "message": "..." , "fields"?: {...} } }
 ```
 - 前端必须读 `data.error.code` / `data.error.message`，**不是** `data.code`。
-- 校验错误可带 `fields`（字段级错误），前端应透传。
+- 校验错误可带 `fields`（字段级错误，形状为 `Record<string, string[]>`，来自 Zod `flatten().fieldErrors`），前端应透传。
+- 部分 `AppError` 可带 `action`（前端可据此提示用户下一步）；`errorHandler` 会透传。
+- **类型事实源**：`packages/shared` 的 `ApiSuccess<T>` / `ApiError` / `Paginated<T>`，前后端共用。
 
 ## 3. 鉴权
 - 受保护端点需 `Authorization: Bearer <accessToken>`。
@@ -34,8 +36,27 @@
 - **迁移完成 ✅（2026-06-03，PR #9 / TASK-004）**：后端 health/community service、前端 `services.jsx` 适配层（含 demo 模式）、`API.md`、`health.test.ts` 已全部翻转为 `items`。现已无 `records`/`posts` 信封；所有列表端点（含未来新端点）一律用 `items`。
 
 ## 6. 错误码约定
-- 复用 `AppError(code, message, httpStatus)`。常见：`NOT_FOUND`(404)、`FORBIDDEN`(403)、`CONFLICT`(409)、`UNAUTHORIZED`(401)、`VALIDATION`(400)。
-- 资源归属校验失败统一 `FORBIDDEN`；资源不存在 `NOT_FOUND`。
+> **事实源 = `packages/shared` 的 `ErrorCode` 联合类型**（逐项核对 `src/middleware/errorHandler.ts` + 全量 `new AppError(...)`）。下表为 2026-06-05 校准结果（修正了本节旧版把校验码误写成 `VALIDATION`、把 500 误写成 `INTERNAL_SERVER_ERROR` 的漂移）。
+
+| code | HTTP | 来源 |
+|---|---|---|
+| `VALIDATION_ERROR` | 400 | `errorHandler` ZodError（**不是** `VALIDATION`） |
+| `NOT_FOUND` | 404 | 各模块；资源不存在 |
+| `FORBIDDEN` | 403 | 各模块；资源归属校验失败统一用它 |
+| `UNAUTHORIZED` | 401 | JWT 无效 / 未认证 |
+| `CONFLICT` | 409 | Prisma P2002 / 显式抛出（唯一约束冲突） |
+| `INVALID_CREDENTIALS` | 401 | 登录密码错误 |
+| `INVALID_REFRESH_TOKEN` | 401 | refresh 续期失败 |
+| `INVALID_CODE` / `CODE_EXPIRED` | 400 | 邮箱验证码 |
+| `EMAIL_NOT_VERIFIED` | 403 | 邮箱未验证 |
+| `ACCOUNT_LOCKED` | 423/403 | 登录失败次数过多 |
+| `PHONE_TAKEN` | 409 | 手机号已被占用 |
+| `ATTACHMENT_LIMIT` | 400 | 健康记录附件超 20 |
+| `UPLOAD_ERROR` / `UNSUPPORTED_FILE_TYPE` | 400 | multer / 文件类型 |
+| `INTERNAL_ERROR` | 500 | 兜底（**不是** `INTERNAL_SERVER_ERROR`） |
+
+- 前端合成码（非后端返回）：`NETWORK_ERROR`（无法连服务器）、`ERROR`（兜底）——亦在 `shared/ErrorCode` 内，因该包同时服务前端。
+- 新增错误码须**同时**更新后端 + `packages/shared/ErrorCode` + 本表。
 
 ## 7. 时间与时区
 - 时间戳为 ISO-8601 UTC 字符串。

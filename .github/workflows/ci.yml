@@ -65,3 +65,41 @@ jobs:
 
       - name: Run Tests
         run: npm test
+
+  frontend-build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        # version comes from root package.json "packageManager" (pnpm@11.5.2);
+        # do NOT also set `version:` here or action-setup errors on the conflict.
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22 # pnpm 11.5.2 requires Node >= 22.13
+
+      - name: Install dependencies (workspace)
+        # --ignore-scripts: this CI's supply-chain layer blocks dependency
+        # postinstall/build scripts (esbuild/prisma/bcrypt), which otherwise makes
+        # the install fail with ERR_PNPM_IGNORED_BUILDS regardless of
+        # only/ignoredBuiltDependencies config. The frontend build doesn't need
+        # those native builds — esbuild resolves its platform binary at runtime —
+        # so skipping all dep scripts is safe here.
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Type Check (frontend)
+        run: pnpm --filter bestie-paw-frontend run typecheck
+
+      - name: Lint (frontend)
+        run: pnpm --filter bestie-paw-frontend run lint
+
+      - name: Test (frontend)
+        run: pnpm --filter bestie-paw-frontend run test
+
+      - name: Build (frontend)
+        run: pnpm --filter bestie-paw-frontend run build
