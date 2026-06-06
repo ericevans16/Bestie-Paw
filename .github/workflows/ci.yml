@@ -82,18 +82,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22 # pnpm 11.5.2 requires Node >= 22.13
-          # NOTE: deliberately no `cache: 'pnpm'`. The setup-node pnpm store
-          # cache caches built package artifacts keyed by lockfile hash; a store
-          # populated before `onlyBuiltDependencies` was set keeps esbuild/prisma
-          # marked as ignored-builds, so frozen installs fail with
-          # ERR_PNPM_IGNORED_BUILDS even after the config is added. Fresh store
-          # each run avoids the poison; re-add caching later with a bumped key.
 
       - name: Install dependencies (workspace)
-        run: |
-          echo "pnpm: $(pnpm --version)"
-          echo "onlyBuiltDependencies => $(pnpm config get onlyBuiltDependencies || echo 'ERR')"
-          pnpm install --frozen-lockfile
+        # Native postinstall scripts (esbuild/prisma/bcrypt) are blocked by this
+        # CI's supply-chain layer; pnpm-workspace.yaml lists them under
+        # ignoredBuiltDependencies so the install doesn't fail. The frontend
+        # build doesn't need them (esbuild resolves its platform binary at runtime).
+        run: pnpm install --frozen-lockfile
 
       - name: Type Check (frontend)
         run: pnpm --filter bestie-paw-frontend run typecheck

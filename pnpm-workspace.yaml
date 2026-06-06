@@ -3,8 +3,11 @@ packages:
   - 'bestie-paw-frontend'
   - 'packages/*'
 
-# Allow these dependencies to run install/build scripts (pnpm 10+ blocks by default).
-onlyBuiltDependencies:
+# These deps have install/build scripts that this CI's supply-chain layer blocks.
+# Acknowledge them as intentionally-unbuilt so pnpm does not fail the install.
+# (Frontend build does not need their native postinstalls; esbuild resolves its
+#  platform binary package at runtime.)
+ignoredBuiltDependencies:
   - '@prisma/client'
   - '@prisma/engines'
   - bcrypt
