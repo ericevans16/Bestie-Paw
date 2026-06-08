@@ -53,7 +53,7 @@ bestie-paw/
 │   ├── main.jsx  services.jsx  ui.jsx  public.jsx
 │   ├── dashboard.jsx  health.jsx  social.jsx  settings.jsx
 ├── bestie-paw-backend/        # 后端：Express + Prisma + PostgreSQL(Neon) + TypeScript
-│   ├── src/modules/{auth,users,pets,health,weight,reminders,community,stats}/
+│   ├── src/modules/{auth,users,pets,health,weight,reminders,articles,stats}/
 │   ├── src/{middleware,utils,config,types}/
 │   ├── prisma/{schema.prisma,migrations,seed.ts}
 │   └── API.md                 # 端点清单（契约事实源之一）
