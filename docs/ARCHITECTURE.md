@@ -5,7 +5,7 @@
 
 ## 系统概览
 
-宠物主人的生活助手：健康档案、提醒、社区、AI 助手。前后端分离。
+宠物主人的生活助手：健康档案、提醒、养宠好文、AI 助手。前后端分离。
 
 ```
 ┌─────────────────────────┐        HTTPS /api        ┌──────────────────────────────┐
@@ -27,9 +27,9 @@
 ## 后端
 - Express 4 + TypeScript（strict）+ Prisma 5 + PostgreSQL。`type: commonjs`，`tsc` 编译到 `dist/`。
 - 分层：`routes → controller → service → prisma`；横切在 `middleware/`(auth/errorHandler/rateLimiter/upload) 与 `utils/`(jwt/hash/mailer/logger/response/prisma)。
-- 模块：`auth`(含 Google/Apple OAuth、邮箱验证、刷新令牌)、`users`、`pets`、`health`(+附件)、`weight`、`reminders`(+node-cron 定时)、`community`(帖/评论/点赞)、`stats`。
-- 鉴权：JWT access/refresh；中间件信任已验证 JWT，不再每请求查库。
-- 数据模型（Prisma）：`User`、`RefreshToken`、`Pet`、`HealthRecord`、`Reminder`、`Post`、`PostLike`、`Comment`、`WeightRecord`；枚举 `PetType`/`Gender`/`NeuteredStatus`/`HealthRecordType`/`ReminderType`（**大写**）。
+- 模块：`auth`(含 Google/Apple OAuth、邮箱验证、刷新令牌)、`users`、`pets`、`health`(+附件)、`weight`、`reminders`(+node-cron 定时)、`articles`(养宠好文：阅读/点赞/收藏；维护者 ADMIN 发布)、`stats`。
+- 鉴权：JWT access/refresh；基础 auth 中间件信任已验证 JWT，不再每请求查库。**ADMIN 专属路由**额外经 `requireAdmin` 中间件，从 DB 实时读 `User.role`（授权变更即时生效）。
+- 数据模型（Prisma）：`User`(含 `role`)、`RefreshToken`、`Pet`、`HealthRecord`、`Reminder`、`Article`、`ArticleLike`、`ArticleFavorite`、`WeightRecord`；枚举 `Role`/`PetType`/`Gender`/`NeuteredStatus`/`HealthRecordType`/`ReminderType`（**大写**）。
 - 上传：`multer` 落本地磁盘 `UPLOAD_DIR`，`/uploads` 静态暴露（CORP 放宽为 cross-origin）。
 - 环境：`config/env.ts` 用 zod 校验；支持 `NODE_ENV=test`。
 
